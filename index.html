@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capítulo 2: Ingeniería de Movilidad | Plaza del Arte</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                        header: ['Oswald', 'sans-serif'],
+                    },
+                    colors: {
+                        'eng-blue': '#0056D2',     // Azul Ingeniería
+                        'eng-dark': '#0B1120',     // Fondo Oscuro
+                        'eng-panel': '#1E293B',    // Paneles
+                        'safety-yellow': '#FACC15', // Advertencias
+                        'concrete': '#94A3B8',     // Elementos Estructurales
+                        'asphalt': '#334155'       // Vías
+                    },
+                    animation: {
+                        'tram-move': 'tramMove 8s infinite linear',
+                        'car-move': 'carMove 4s infinite linear',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        tramMove: {
+                            '0%': { transform: 'translateX(-120%)' },
+                            '45%': { transform: 'translateX(0%)' }, // Parada
+                            '55%': { transform: 'translateX(0%)' }, // Espera
+                            '100%': { transform: 'translateX(120%)' }
+                        },
+                        carMove: {
+                            '0%': { transform: 'translateY(120%)' }, // Vertical movement for Sarmiento street visual
+                            '100%': { transform: 'translateY(-120%)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Estética Technical Blueprint */
+        body { background-color: #0B1120; color: #E2E8F0; }
+        
+        .blueprint-grid {
+            background-image: 
+                linear-gradient(rgba(30, 41, 59, 0.5) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(30, 41, 59, 0.5) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .tech-border {
+            border: 1px solid #334155;
+            position: relative;
+        }
+        .tech-border::before {
+            content: '';
+            position: absolute;
+            top: -1px; left: -1px; width: 10px; height: 10px;
+            border-top: 2px solid #0056D2;
+            border-left: 2px solid #0056D2;
+        }
+        .tech-border::after {
+            content: '';
+            position: absolute;
+            bottom: -1px; right: -1px; width: 10px; height: 10px;
+            border-bottom: 2px solid #0056D2;
+            border-right: 2px solid #0056D2;
+        }
+
+        /* Scrollbar Técnica */
+        ::-webkit-scrollbar { width: 8px; background: #0F172A; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; border: 1px solid #1E293B; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        .nav-btn.active {
+            background-color: #0056D2;
+            color: white;
+            border-color: #60A5FA;
+        }
+
+        /* Efecto de línea de cota */
+        .dimension-line {
+            display: flex;
+            align-items: center;
+            color: #FACC15;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+        }
+        .dimension-line::before, .dimension-line::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background-color: #FACC15;
+        }
+        .dimension-line::before { margin-right: 4px; border-left: 1px solid #FACC15; height: 4px; margin-top: -3px; }
+        .dimension-line::after { margin-left: 4px; border-right: 1px solid #FACC15; height: 4px; margin-top: -3px; }
+
+    </style>
+</head>
+<body class="blueprint-grid min-h-screen flex flex-col font-sans overflow-hidden">
+
+    <!-- HEADER DE INGENIERÍA -->
+    <header class="h-16 bg-eng-panel border-b border-slate-700 flex items-center justify-between px-6 z-50 shadow-md">
+        <div class="flex items-center gap-4">
+            <div class="bg-eng-blue w-10 h-10 flex items-center justify-center font-bold font-header text-xl rounded">02</div>
+            <div>
+                <h1 class="text-white font-header tracking-wider text-lg leading-none uppercase">Ingeniería de Movilidad</h1>
+                <p class="text-[10px] text-eng-blue font-mono font-bold">ESTRATIFICACIÓN VIAL & FLUJOS</p>
+            </div>
+        </div>
+        
+        <!-- Navegación Tabular -->
+        <nav class="flex gap-2 bg-eng-dark p-1 rounded border border-slate-700">
+            <button onclick="switchTab('concept')" id="btn-concept" class="nav-btn active px-4 py-1.5 text-xs font-bold rounded transition-colors uppercase font-mono">1. Concepto 3D</button>
+            <button onclick="switchTab('section')" id="btn-section" class="nav-btn px-4 py-1.5 text-xs font-bold text-slate-400 hover:text-white rounded transition-colors uppercase font-mono">2. Corte Técnico</button>
+            <button onclick="switchTab('plan')" id="btn-plan" class="nav-btn px-4 py-1.5 text-xs font-bold text-slate-400 hover:text-white rounded transition-colors uppercase font-mono">3. Planta Vial</button>
+            <button onclick="switchTab('specs')" id="btn-specs" class="nav-btn px-4 py-1.5 text-xs font-bold text-slate-400 hover:text-white rounded transition-colors uppercase font-mono">4. Especificaciones</button>
+        </nav>
+
+        <div class="flex items-center gap-4 text-[10px] font-mono text-slate-400">
+            <div class="text-right">
+                <div class="text-white font-bold">FLUJO PROYECTADO</div>
+                <div>1,200 Veh/Hora (Sub)</div>
+            </div>
+            <div class="h-8 w-px bg-slate-600"></div>
+            <div class="text-right">
+                <div class="text-white font-bold">TRANVÍA</div>
+                <div>Frec: 8 min</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 flex overflow-hidden">
+        
+        <!-- SIDEBAR: DATOS TÉCNICOS -->
+        <aside class="w-72 bg-eng-panel border-r border-slate-700 flex flex-col z-20 shadow-2xl overflow-y-auto">
+            <div class="p-6 border-b border-slate-700">
+                <h3 class="font-header text-white mb-1 tracking-wide">Desafío Estructural</h3>
+                <p class="text-xs text-slate-400 leading-relaxed mb-4">
+                    Resolver la intersección de dos ejes principales sin interrumpir la continuidad peatonal de la Plaza del Arte.
+                </p>
+                <div class="space-y-2">
+                    <div class="bg-eng-dark p-2 rounded border border-slate-600">
+                        <span class="block text-[9px] text-eng-blue font-bold uppercase">Eje X (Superficie)</span>
+                        <div class="flex justify-between items-center">
+                            <strong class="text-xs text-white">C. Gaspar Sangurima</strong>
+                            <span class="text-[10px] bg-blue-900 text-blue-200 px-1 rounded">TRANVÍA</span>
+                        </div>
+                    </div>
+                    <div class="bg-eng-dark p-2 rounded border border-slate-600">
+                        <span class="block text-[9px] text-safety-yellow font-bold uppercase">Eje Y (Soterrado)</span>
+                        <div class="flex justify-between items-center">
+                            <strong class="text-xs text-white">Av. Abraham Sarmiento</strong>
+                            <span class="text-[10px] bg-yellow-900 text-yellow-200 px-1 rounded">MIXTO</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel Dinámico -->
+            <div id="sidebar-dynamic" class="p-6 flex-1 space-y-6">
+                <!-- Se llena con JS -->
+                <div class="opacity-75">
+                    <h4 class="font-bold text-xs text-slate-300 uppercase mb-2 border-b border-slate-600 pb-1">Leyenda de Niveles</h4>
+                    <ul class="space-y-3 text-xs font-mono">
+                        <li class="flex items-center gap-3">
+                            <span class="w-2 h-8 bg-safety-yellow rounded-sm"></span>
+                            <div>
+                                <span class="block text-white font-bold">+5.00m</span>
+                                <span class="text-slate-500">Puente Peatonal</span>
+                            </div>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <span class="w-2 h-8 bg-eng-blue rounded-sm"></span>
+                            <div>
+                                <span class="block text-white font-bold">±0.00m</span>
+                                <span class="text-slate-500">Plaza & Tranvía</span>
+                            </div>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <span class="w-2 h-8 bg-slate-600 rounded-sm"></span>
+                            <div>
+                                <span class="block text-white font-bold">-4.50m</span>
+                                <span class="text-slate-500">Túnel Vehicular</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="mt-8 p-3 bg-blue-900/20 border border-blue-500/30 rounded text-center">
+                    <div class="text-2xl mb-1">⚠️</div>
+                    <p class="text-[10px] text-blue-200">
+                        Prioridad Absoluta:<br>
+                        <strong>Continuidad Peatonal</strong>
+                    </p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- VISUALIZATION AREA -->
+        <section class="flex-1 relative p-8 flex items-center justify-center overflow-auto">
+            
+            <!-- TAB 1: CONCEPTO 3D (ISOMÉTRICO SIMULADO) -->
+            <div id="concept" class="tab-panel active w-full max-w-5xl h-full flex flex-col justify-center">
+                <div class="grid lg:grid-cols-2 gap-12 items-center">
+                    
+                    <!-- Text Explanation -->
+                    <div class="space-y-6">
+                        <h2 class="text-3xl font-header text-white uppercase"><span class="text-eng-blue">La Solución:</span><br>Segregación Vertical</h2>
+                        <p class="text-slate-300 leading-relaxed text-sm">
+                            Para evitar que el tráfico de la Av. Abraham Sarmiento divida la nueva plaza en dos mitades desconectadas, se propone su <strong>soterramiento parcial</strong>. 
+                        </p>
+                        <ul class="space-y-4">
+                            <li class="flex gap-4 bg-eng-dark p-3 rounded border-l-4 border-eng-blue">
+                                <span class="text-2xl">🚋</span>
+                                <div>
+                                    <h4 class="font-bold text-white text-sm">Nivel 0: Tranvía Integrado</h4>
+                                    <p class="text-xs text-slate-400">La Gaspar Sangurima se mantiene en superficie. El tranvía circula a baja velocidad (20km/h) integrado al pavimento peatonal (sin balasto).</p>
+                                </div>
+                            </li>
+                            <li class="flex gap-4 bg-eng-dark p-3 rounded border-l-4 border-slate-500">
+                                <span class="text-2xl">🚗</span>
+                                <div>
+                                    <h4 class="font-bold text-white text-sm">Nivel -1: Túnel Express</h4>
+                                    <p class="text-xs text-slate-400">Paso deprimido que inicia 60m antes de la plaza. Absorbe el 100% del tráfico vehicular privado y pesado.</p>
+                                </div>
+                            </li>
+                            <li class="flex gap-4 bg-eng-dark p-3 rounded border-l-4 border-safety-yellow">
+                                <span class="text-2xl">🌉</span>
+                                <div>
+                                    <h4 class="font-bold text-white text-sm">Nivel +1: Conexión Fluida</h4>
+                                    <p class="text-xs text-slate-400">Puente ligero que permite cruzar de la zona Norte (Teatro) a la Sur (Ágora) sin interactuar con el tranvía si se desea.</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Diagrama Esquemático de Estratos -->
+                    <div class="relative h-[400px] w-full flex flex-col items-center justify-center perspective-container">
+                        <!-- Nivel Puente -->
+                        <div class="w-64 h-24 bg-safety-yellow/10 border-2 border-safety-yellow/50 rounded-xl mb-4 transform hover:scale-105 transition-transform flex items-center justify-center relative shadow-[0_0_20px_rgba(250,204,21,0.2)] z-30 backdrop-blur-sm">
+                            <span class="text-safety-yellow font-header text-lg">NIVEL +1 (Puente)</span>
+                            <div class="absolute -right-12 text-xs text-slate-400 font-mono">Conexión</div>
+                        </div>
+                        
+                        <!-- Flechas de conexión -->
+                        <div class="h-8 w-0.5 border-l border-dashed border-slate-500 my-1"></div>
+
+                        <!-- Nivel Plaza -->
+                        <div class="w-80 h-32 bg-eng-blue/10 border-2 border-eng-blue/50 rounded-xl mb-4 transform hover:scale-105 transition-transform flex items-center justify-center relative shadow-[0_0_20px_rgba(0,86,210,0.2)] z-20 backdrop-blur-sm">
+                            <span class="text-eng-blue font-header text-lg">NIVEL 0 (Plaza/Tranvía)</span>
+                            <div class="absolute -right-12 text-xs text-slate-400 font-mono">Espacio Público</div>
+                            <!-- Icono Tranvía -->
+                            <div class="absolute bottom-2 left-4 animate-bounce">🚋</div>
+                        </div>
+
+                        <!-- Flechas de conexión -->
+                        <div class="h-8 w-0.5 border-l border-dashed border-slate-500 my-1"></div>
+
+                        <!-- Nivel Túnel -->
+                        <div class="w-64 h-24 bg-slate-800/80 border-2 border-slate-600 rounded-xl transform hover:scale-105 transition-transform flex items-center justify-center relative shadow-inner z-10">
+                            <span class="text-slate-400 font-header text-lg">NIVEL -1 (Túnel)</span>
+                            <div class="absolute -right-12 text-xs text-slate-400 font-mono">Vehicular</div>
+                            <!-- Icono Auto -->
+                            <div class="absolute top-2 right-4 opacity-50">🚗</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- TAB 2: CORTE TÉCNICO ANIMADO -->
+            <div id="section" class="tab-panel hidden w-full h-full flex flex-col items-center justify-center">
+                <div class="bg-eng-dark p-2 rounded mb-4 border border-slate-600">
+                    <h3 class="text-center font-mono text-sm text-slate-300 uppercase tracking-widest">Corte Transversal A-A' (Intersección Central)</h3>
+                </div>
+
+                <!-- EL GRAN DIAGRAMA CSS -->
+                <div class="relative w-full max-w-4xl h-[500px] tech-border bg-[#0f1520] overflow-hidden">
+                    
+                    <!-- FONDO: Edificios Contexto (Siluetas) -->
+                    <div class="absolute bottom-[200px] left-10 w-32 h-64 bg-slate-800/50 border border-slate-700"></div> <!-- Edificio Izq -->
+                    <div class="absolute bottom-[200px] right-10 w-32 h-64 bg-slate-800/50 border border-slate-700"></div> <!-- Edificio Der -->
+
+                    <!-- CAPA 1: SUELO (Nivel 0) -->
+                    <div class="absolute bottom-[200px] left-0 w-full h-4 bg-slate-600 z-20"></div>
+                    
+                    <!-- PAVIMENTO PLAZA -->
+                    <div class="absolute bottom-[204px] left-0 w-full h-2 bg-slate-500 z-20 flex justify-between px-20">
+                        <span class="text-[10px] text-slate-400 -mt-4">Ágora Sur</span>
+                        <span class="text-[10px] text-slate-400 -mt-4">Plaza Norte</span>
+                    </div>
+
+                    <!-- EJE TRANVÍA (Centro Nivel 0) -->
+                    <div class="absolute bottom-[204px] left-1/2 -translate-x-1/2 w-48 h-10 z-30 flex items-end justify-center">
+                        <!-- Vía Tranvía -->
+                        <div class="w-full h-1 bg-blue-500/30 absolute bottom-0"></div>
+                        <!-- El Tranvía (Objeto) -->
+                        <div class="relative w-32 h-14 bg-white rounded-lg shadow-lg border-b-4 border-blue-600 flex items-center justify-center z-40">
+                            <div class="w-full h-8 bg-blue-100 absolute top-1 flex gap-1 px-1">
+                                <div class="w-1/3 h-full bg-slate-800 rounded-sm"></div>
+                                <div class="w-1/3 h-full bg-slate-800 rounded-sm"></div>
+                                <div class="w-1/3 h-full bg-slate-800 rounded-sm"></div>
+                            </div>
+                            <span class="absolute bottom-1 text-[8px] text-blue-900 font-bold tracking-widest">TRANVÍA DE CUENCA</span>
+                        </div>
+                    </div>
+
+                    <!-- CAPA 2: PUENTE (Nivel +1) -->
+                    <div class="absolute bottom-[300px] left-1/2 -translate-x-1/2 w-96 h-32 z-40 pointer-events-none">
+                        <!-- Tablero Puente -->
+                        <div class="absolute bottom-0 w-full h-3 bg-safety-yellow rounded-full shadow-[0_5px_15px_rgba(0,0,0,0.5)]"></div>
+                        <!-- Barandas -->
+                        <div class="absolute bottom-3 w-full h-4 border-x border-t border-yellow-600/50 opacity-50"></div>
+                        <!-- Personas en puente -->
+                        <div class="absolute bottom-3 left-10 text-lg">🚶</div>
+                        <div class="absolute bottom-3 right-20 text-lg">🏃‍♀️</div>
+                        
+                        <div class="absolute -top-6 left-1/2 -translate-x-1/2 bg-yellow-900/80 text-yellow-200 text-[10px] px-2 rounded border border-yellow-600">
+                            Gálibo: 5.00m (Paso Tranvía)
+                        </div>
+                    </div>
+
+                    <!-- CAPA 3: SUBSUELO (Nivel -1) - TÚNEL -->
+                    <div class="absolute bottom-0 left-0 w-full h-[200px] bg-[#1a1a1a] z-10 border-t border-slate-600">
+                        <!-- Patrón Tierra -->
+                        <div class="absolute inset-0 opacity-20" style="background-image: linear-gradient(45deg, #333 25%, transparent 25%, transparent 75%, #333 75%, #333), linear-gradient(45deg, #333 25%, transparent 25%, transparent 75%, #333 75%, #333); background-size: 20px 20px; background-position: 0 0, 10px 10px;"></div>
+
+                        <!-- Estructura Túnel (Caja de Concreto) -->
+                        <div class="absolute top-10 left-1/2 -translate-x-1/2 w-40 h-24 border-[3px] border-slate-500 bg-slate-800 flex items-center justify-center overflow-hidden shadow-inner">
+                            <div class="absolute top-0 w-full h-2 bg-white/10 flex justify-center gap-4">
+                                <div class="w-4 h-1 bg-yellow-500 rounded-full mt-0.5 animate-pulse"></div> <!-- Luces túnel -->
+                            </div>
+                            
+                            <!-- Auto (Vista Frontal) -->
+                            <div class="w-16 h-10 bg-red-600 rounded-t-lg relative shadow-lg mt-4">
+                                <div class="absolute bottom-1 left-1 w-3 h-3 bg-yellow-200 rounded-full blur-[2px]"></div> <!-- Faro -->
+                                <div class="absolute bottom-1 right-1 w-3 h-3 bg-yellow-200 rounded-full blur-[2px]"></div> <!-- Faro -->
+                                <div class="w-12 h-4 bg-black/50 mx-auto mt-1 rounded-sm border border-slate-700"></div> <!-- Parabrisas -->
+                                <span class="absolute -bottom-6 w-full text-center text-[8px] text-slate-400">Abraham Sarmiento</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Cotas -->
+                        <div class="absolute right-10 top-10 h-24 w-px bg-slate-500 flex flex-col justify-between items-start pl-2">
+                            <span class="text-[9px] text-slate-400 font-mono">-1.00m</span>
+                            <span class="text-[9px] text-slate-400 font-mono">-4.50m</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- TAB 3: PLANTA VIAL (TOP DOWN) -->
+            <div id="plan" class="tab-panel hidden w-full max-w-2xl h-full overflow-y-auto">
+                <div class="bg-eng-panel p-8 rounded-lg border border-slate-600 relative">
+                    <h3 class="font-header text-white mb-6">Planta de Infraestructura Vial</h3>
+
+                    <!-- ESQUEMA DE PLANTA -->
+                    <div class="relative w-full h-[600px] bg-eng-dark border border-slate-700 overflow-hidden">
+                        
+                        <!-- CALLE VERTICAL (Sarmiento) - EL TÚNEL -->
+                        <div class="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-24 bg-asphalt z-10 flex flex-col items-center">
+                            <!-- Zona Norte: Rampa de Bajada -->
+                            <div class="w-full h-1/4 bg-gradient-to-b from-asphalt to-slate-900 border-x border-safety-yellow flex flex-col items-center pt-4 relative">
+                                <div class="text-[8px] text-safety-yellow font-bold uppercase mb-1">Rampa Acceso</div>
+                                <div class="text-[12px] text-white animate-bounce">⬇</div>
+                                <span class="absolute right-1 top-10 text-[7px] text-slate-400 font-mono rotate-90 origin-top-right">Pendiente 12%</span>
+                            </div>
+
+                            <!-- Zona Central: Túnel (Soterrado) -->
+                            <div class="w-full h-2/4 bg-slate-900 border-x border-dashed border-slate-600 relative opacity-80">
+                                <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[9px] text-slate-500 font-mono rotate-90 whitespace-nowrap">TÚNEL BAJO PLAZA</span>
+                            </div>
+
+                            <!-- Zona Sur: Rampa de Salida -->
+                            <div class="w-full h-1/4 bg-gradient-to-t from-asphalt to-slate-900 border-x border-safety-yellow flex flex-col items-center justify-end pb-4 relative">
+                                <div class="text-[12px] text-white animate-bounce rotate-180">⬇</div>
+                                <div class="text-[8px] text-safety-yellow font-bold uppercase mt-1">Rampa Salida</div>
+                            </div>
+                        </div>
+
+                        <!-- CALLE HORIZONTAL (Sangurima) - TRANVÍA -->
+                        <div class="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-16 bg-eng-panel z-20 border-y border-slate-600 shadow-xl flex items-center px-4">
+                            <!-- Rieles -->
+                            <div class="w-full h-6 border-y border-dashed border-blue-500/50 relative">
+                                <!-- El Tranvía en Planta -->
+                                <div class="absolute top-0.5 w-24 h-4 bg-blue-600 rounded animate-tram-move"></div>
+                            </div>
+                            <span class="absolute top-1 left-2 text-[8px] text-blue-400 font-bold">NIVEL 0: SUPERFICIE</span>
+                        </div>
+
+                        <!-- LAS MANZANAS (Contexto) -->
+                        <div class="absolute top-4 left-4 w-32 h-32 border border-slate-600 p-2 text-[9px] text-slate-500">M.A.M. (Museo)</div>
+                        <div class="absolute top-4 right-4 w-32 h-32 border border-slate-600 p-2 text-[9px] text-slate-500 text-right">Teatro</div>
+                        <div class="absolute bottom-4 left-4 w-32 h-32 border border-slate-600 p-2 text-[9px] text-slate-500 flex items-end">Ágora</div>
+                        <div class="absolute bottom-4 right-4 w-32 h-32 border border-slate-600 p-2 text-[9px] text-slate-500 flex items-end justify-end">Galería</div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: ESPECIFICACIONES TÉCNICAS -->
+            <div id="specs" class="tab-panel hidden w-full max-w-4xl h-full overflow-y-auto">
+                <div class="grid md:grid-cols-2 gap-8">
+                    
+                    <!-- Ficha Técnica Túnel -->
+                    <div class="bg-eng-panel border border-slate-600 rounded-lg overflow-hidden">
+                        <div class="bg-slate-800 px-4 py-3 border-b border-slate-600 flex justify-between">
+                            <h3 class="font-header text-white">Especificaciones Túnel</h3>
+                            <span class="text-xs font-mono text-safety-yellow">VÍA CLASE 3</span>
+                        </div>
+                        <div class="p-6">
+                            <table class="w-full text-xs text-left text-slate-300">
+                                <tbody class="divide-y divide-slate-700">
+                                    <tr>
+                                        <td class="py-2 text-slate-500">Longitud Total (inc. rampas)</td>
+                                        <td class="py-2 font-mono text-white text-right">240.00 m</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 text-slate-500">Longitud Soterrada</td>
+                                        <td class="py-2 font-mono text-white text-right">120.00 m</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 text-slate-500">Pendiente Rampas</td>
+                                        <td class="py-2 font-mono text-white text-right">12% Max</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 text-slate-500">Gálibo Vertical</td>
+                                        <td class="py-2 font-mono text-white text-right">4.50 m</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 text-slate-500">Ancho Calzada</td>
+                                        <td class="py-2 font-mono text-white text-right">7.20 m (2 Carriles)</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Ficha Técnica Tranvía -->
+                    <div class="bg-eng-panel border border-slate-600 rounded-lg overflow-hidden">
+                        <div class="bg-blue-900 px-4 py-3 border-b border-blue-800 flex justify-between">
+                            <h3 class="font-header text-white">Integración Tranviaria</h3>
+                            <span class="text-xs font-mono text-blue-200">SISTEMA CITADIS</span>
+                        </div>
+                        <div class="p-6">
+                            <table class="w-full text-xs text-left text-slate-300">
+                                <tbody class="divide-y divide-slate-700">
+                                    <tr>
+                                        <td class="py-2 text-slate-500">Velocidad en Plaza</td>
+                                        <td class="py-2 font-mono text-white text-right">20 km/h</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 text-slate-500">Tipo de Riel</td>
+                                        <td class="py-2 font-mono text-white text-right">Garganta (Embebido)</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 text-slate-500">Acabado Superficial</td>
+                                        <td class="py-2 font-mono text-white text-right">Adoquín de Piedra</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 text-slate-500">Prioridad Semafórica</td>
+                                        <td class="py-2 font-mono text-white text-right">Total</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Gráfico de Capacidad -->
+                    <div class="md:col-span-2 bg-eng-panel p-6 rounded-lg border border-slate-600">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase mb-4">Análisis de Capacidad Vial</h4>
+                        <div class="h-48 w-full">
+                            <canvas id="flowChart"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <script>
+        function switchTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-panel').forEach(el => {
+                el.classList.add('hidden');
+                el.classList.remove('active');
+            });
+            // Show selected
+            const activePanel = document.getElementById(tabId);
+            activePanel.classList.remove('hidden');
+            setTimeout(() => activePanel.classList.add('active'), 10); // Trigger transition
+
+            // Update buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-eng-blue', 'text-white', 'border-blue-400');
+                btn.classList.add('text-slate-400', 'hover:text-white');
+            });
+            const activeBtn = document.getElementById('btn-' + tabId);
+            activeBtn.classList.add('active', 'bg-eng-blue', 'text-white');
+            activeBtn.classList.remove('text-slate-400', 'hover:text-white');
+        }
+
+        // Initialize Chart
+        document.addEventListener('DOMContentLoaded', () => {
+            const ctx = document.getElementById('flowChart').getContext('2d');
+            
+            // Gradient for chart
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(0, 86, 210, 0.5)');
+            gradient.addColorStop(1, 'rgba(0, 86, 210, 0.0)');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'],
+                    datasets: [{
+                        label: 'Flujo Vehicular en Túnel (Veh/h)',
+                        data: [200, 1200, 800, 1100, 900, 1000, 1300, 600],
+                        borderColor: '#0056D2',
+                        backgroundColor: gradient,
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 2,
+                        pointBackgroundColor: '#FACC15'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            grid: { color: '#334155' },
+                            ticks: { color: '#94A3B8' }
+                        },
+                        x: {
+                            grid: { color: '#334155' },
+                            ticks: { color: '#94A3B8' }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#E2E8F0' } }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
